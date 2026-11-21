@@ -25,3 +25,8 @@ parameter schemas, a `test/` folder and a `README.md`.
    `slapos` commit in `extends`, as `telegraf/software.cfg` does.
 3. Run `update-hash` of the `slapos` repository on `buildout.hash.cfg` after each
    change of a file that it lists.
+
+## License
+
+MIT. See [LICENSE](LICENSE). Telegraf, which the `telegraf` software release
+builds, is also under the MIT license.
