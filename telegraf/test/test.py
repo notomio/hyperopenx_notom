@@ -28,8 +28,12 @@ except ImportError:  # Python < 3.11
 from slapos.slap.standalone import SlapOSNodeCommandError
 from slapos.testing.testcase import makeModuleSetUpAndTestCaseClass
 
+# The URL of software.cfg to test. Default: the file next to this folder.
+SOFTWARE_URL = os.environ.get('TELEGRAF_TEST_SOFTWARE_URL') or os.path.abspath(
+  os.path.join(os.path.dirname(__file__), '..', 'software.cfg'))
+
 setUpModule, SlapOSInstanceTestCase = makeModuleSetUpAndTestCaseClass(
-  os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'software.cfg')))
+  SOFTWARE_URL)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OPCUA_PYTHON = os.environ.get('TELEGRAF_TEST_OPCUA_PYTHON', sys.executable)
