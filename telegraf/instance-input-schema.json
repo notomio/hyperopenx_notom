@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Telegraf instance parameters",
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "object",
+      "title": "Agent",
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "title": "Collection interval",
+          "description": "Duration between two collections, for example 10s.",
+          "type": "string",
+          "default": "10s"
+        },
+        "flush-interval": {
+          "title": "Flush interval",
+          "description": "Duration between two writes to the outputs.",
+          "type": "string",
+          "default": "10s"
+        },
+        "hostname": {
+          "title": "Hostname",
+          "description": "Value of the host tag. The tag is omitted when empty.",
+          "type": "string"
+        },
+        "debug": {
+          "title": "Debug logs",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "opcua": {
+      "type": "object",
+      "title": "OPC UA input",
+      "required": [
+        "endpoint"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string",
+          "examples": [
+            "opc.tcp://localhost:4840"
+          ]
+        },
+        "security-policy": {
+          "title": "Security policy",
+          "type": "string",
+          "enum": [
+            "auto",
+            "None",
+            "Basic128Rsa15",
+            "Basic256",
+            "Basic256Sha256"
+          ],
+          "default": "auto"
+        },
+        "security-mode": {
+          "title": "Security mode",
+          "type": "string",
+          "enum": [
+            "auto",
+            "None",
+            "Sign",
+            "SignAndEncrypt"
+          ],
+          "default": "auto"
+        },
+        "auth-method": {
+          "title": "Authentication method",
+          "type": "string",
+          "enum": [
+            "Anonymous",
+            "UserName",
+            "Certificate"
+          ],
+          "default": "Anonymous"
+        },
+        "username": {
+          "title": "User name",
+          "type": "string"
+        },
+        "password": {
+          "title": "Password",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp source",
+          "type": "string",
+          "enum": [
+            "gather",
+            "server",
+            "source"
+          ],
+          "default": "gather"
+        },
+        "nodes": {
+          "title": "Nodes",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "title": "Field name",
+                "type": "string"
+              },
+              "id": {
+                "title": "Node ID",
+                "type": "string",
+                "examples": [
+                  "ns=0;i=2259"
+                ]
+              }
+            }
+          }
+        },
+        "certificate": {
+          "title": "Client certificate",
+          "description": "PEM certificate. Set together with the private key. If both are empty, Telegraf creates a self-signed certificate in srv/opcua/.",
+          "type": "string",
+          "textarea": true
+        },
+        "private-key": {
+          "title": "Client private key",
+          "description": "PEM private key of the client certificate.",
+          "type": "string",
+          "textarea": true
+        },
+        "remote-certificate": {
+          "title": "Server certificate",
+          "description": "PEM certificate of the OPC UA server, explicitly trusted by the client.",
+          "type": "string",
+          "textarea": true
+        }
+      }
+    },
+    "mqtt": {
+      "type": "object",
+      "title": "MQTT output",
+      "required": [
+        "servers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "servers": {
+          "title": "Brokers",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "examples": [
+              "mqtt://localhost:1883"
+            ]
+          },
+          "minItems": 1
+        },
+        "topic": {
+          "title": "Topic template",
+          "description": "Go template. The default is telegraf/{{ .Tag \"host\" }}/{{ .Name }}.",
+          "type": "string"
+        },
+        "qos": {
+          "title": "QoS",
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "default": 1
+        },
+        "retain": {
+          "title": "Retain flag",
+          "type": "boolean",
+          "default": false
+        },
+        "data-format": {
+          "title": "Data format",
+          "type": "string",
+          "enum": [
+            "json",
+            "influx",
+            "prometheus",
+            "carbon2",
+            "graphite"
+          ],
+          "default": "json"
+        },
+        "username": {
+          "title": "User name",
+          "type": "string"
+        },
+        "password": {
+          "title": "Password",
+          "type": "string"
+        },
+        "insecure-skip-verify": {
+          "title": "Skip TLS verification",
+          "type": "boolean",
+          "default": false
+        },
+        "tls-ca": {
+          "title": "CA certificate",
+          "description": "PEM certificate of the authority that signed the broker certificate.",
+          "type": "string",
+          "textarea": true
+        },
+        "tls-cert": {
+          "title": "Client certificate",
+          "description": "PEM certificate for client authentication. Set together with tls-key.",
+          "type": "string",
+          "textarea": true
+        },
+        "tls-key": {
+          "title": "Client private key",
+          "description": "PEM private key for client authentication.",
+          "type": "string",
+          "textarea": true
+        }
+      }
+    },
+    "extra-config": {
+      "title": "Extra TOML configuration",
+      "description": "Raw TOML appended to the generated configuration.",
+      "type": "string",
+      "textarea": true
+    }
+  }
+}

@@ -1,0 +1,143 @@
+[buildout]
+parts =
+  telegraf-service
+  telegraf-health-promise
+  publish-connection-parameter
+
+eggs-directory = {{ buildout['eggs-directory'] }}
+develop-eggs-directory = {{ buildout['develop-eggs-directory'] }}
+offline = true
+
+extends = {{ template_monitor }}
+
+[slap-configuration]
+recipe = slapos.cookbook:slapconfiguration.serialised
+computer = ${slap-connection:computer-id}
+partition = ${slap-connection:partition-id}
+url = ${slap-connection:server-url}
+key = ${slap-connection:key-file}
+cert = ${slap-connection:cert-file}
+
+[directory]
+recipe = slapos.cookbook:mkdirectory
+home = ${buildout:directory}
+etc = ${:home}/etc
+var = ${:home}/var
+srv = ${:home}/srv
+service = ${:etc}/service
+log = ${:var}/log
+# Fragments placed here are loaded after the generated configuration.
+extra-config = ${:srv}/telegraf.d
+opcua = ${:srv}/opcua
+mqtt = ${:srv}/mqtt
+
+# Writes the certificates and keys given as parameters.
+[tls-files]
+recipe = slapos.recipe.build
+slapparameter-dict = ${slap-configuration:configuration}
+opcua-dir = ${directory:opcua}
+mqtt-dir = ${directory:mqtt}
+init =
+  import hashlib
+  import json
+  import os
+  import zc.buildout
+
+  parameter_dict = options['slapparameter-dict']
+  self._files = {}
+
+  def collect(prefix, directory, parameter_dict, name_dict):
+    for key, filename in name_dict.items():
+      path = os.path.join(directory, filename)
+      value = parameter_dict.get(key)
+      if value:
+        self._files[path] = value
+      options['%s-%s' % (prefix, key)] = path if value else ''
+
+  opcua = parameter_dict.get('opcua')
+  options['opcua-certificate'] = options['opcua-private-key'] = ''
+  options['opcua-remote-certificate'] = ''
+  if opcua:
+    collect('opcua', options['opcua-dir'], opcua, {
+      'certificate': 'cert.pem',
+      'private-key': 'key.pem',
+      'remote-certificate': 'server-cert.pem'})
+    if bool(opcua.get('certificate')) != bool(opcua.get('private-key')):
+      raise zc.buildout.UserError(
+        'opcua: certificate and private-key must be set together')
+    if not opcua.get('certificate'):
+      # Telegraf creates a self-signed certificate at these paths.
+      options['opcua-certificate'] = os.path.join(
+        options['opcua-dir'], 'cert.pem')
+      options['opcua-private-key'] = os.path.join(
+        options['opcua-dir'], 'key.pem')
+
+  mqtt = parameter_dict.get('mqtt')
+  options['mqtt-tls-ca'] = options['mqtt-tls-cert'] = ''
+  options['mqtt-tls-key'] = ''
+  if mqtt:
+    collect('mqtt', options['mqtt-dir'], mqtt, {
+      'tls-ca': 'ca.pem',
+      'tls-cert': 'cert.pem',
+      'tls-key': 'key.pem'})
+    if bool(mqtt.get('tls-cert')) != bool(mqtt.get('tls-key')):
+      raise zc.buildout.UserError(
+        'mqtt: tls-cert and tls-key must be set together')
+
+  # The part is reinstalled when a file changes.
+  options['files-hashes'] = hashlib.sha256(json.dumps(
+    {path: hashlib.sha256(content.encode()).hexdigest()
+     for path, content in self._files.items()},
+    sort_keys=True).encode()).hexdigest()
+install =
+  import os
+  # the part must create its own location
+  os.mkdir(self.options['location'])
+  for path, content in self._files.items():
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f:
+      f.write(content)
+
+[telegraf-config-file]
+recipe = slapos.recipe.template:jinja2
+url = {{ telegraf_config_template }}
+output = ${directory:etc}/telegraf.toml
+# The file can hold passwords.
+mode = 0600
+extensions = jinja2.ext.do
+context =
+  key parameter_dict slap-configuration:configuration
+  key health_ipv4 slap-configuration:ipv4-random
+  key health_port :health-port
+  key logfile telegraf-service:logfile
+  key tls_hash tls-files:files-hashes
+  key opcua_certificate tls-files:opcua-certificate
+  key opcua_private_key tls-files:opcua-private-key
+  key opcua_remote_certificate tls-files:opcua-remote-certificate
+  key mqtt_tls_ca tls-files:mqtt-tls-ca
+  key mqtt_tls_cert tls-files:mqtt-tls-cert
+  key mqtt_tls_key tls-files:mqtt-tls-key
+health-port = 8888
+
+[telegraf-service]
+recipe = slapos.cookbook:wrapper
+logfile = ${directory:log}/telegraf.log
+command-line =
+  {{ telegraf_bin }}
+    --config ${telegraf-config-file:output}
+    --config-directory ${directory:extra-config}
+wrapper-path = ${directory:service}/telegraf
+hash-files = ${telegraf-config-file:output}
+
+[telegraf-health-promise]
+<= monitor-promise-base
+promise = check_socket_listening
+name = telegraf-health.py
+config-host = ${slap-configuration:ipv4-random}
+config-port = ${telegraf-config-file:health-port}
+
+[publish-connection-parameter]
+recipe = slapos.cookbook:publish
+health-url = http://${slap-configuration:ipv4-random}:${telegraf-config-file:health-port}
+logfile = ${telegraf-service:logfile}
+opcua-client-certificate = ${tls-files:opcua-certificate}

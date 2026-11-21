@@ -1,0 +1,4 @@
+{
+  "agent": {"hostname": "test-vm", "interval": "5s", "flush-interval": "5s"},
+  "extra-config": "[[inputs.cpu]]\n  totalcpu = true\n  percpu = false\n"
+}

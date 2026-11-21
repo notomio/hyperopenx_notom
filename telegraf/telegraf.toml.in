@@ -1,0 +1,73 @@
+{#- Strings are rendered with tojson: JSON strings are valid TOML strings. #}
+{%- set agent = parameter_dict.get('agent', {}) %}
+{%- set opcua = parameter_dict.get('opcua') %}
+{%- set mqtt = parameter_dict.get('mqtt') %}
+{%- set default_topic %}{% raw %}telegraf/{{ .Tag "host" }}/{{ .Name }}{% endraw %}{% endset %}
+# Hash of the TLS files: a change restarts the service.
+# {{ tls_hash }}
+[agent]
+  interval = {{ agent.get('interval', '10s') | tojson }}
+  flush_interval = {{ agent.get('flush-interval', '10s') | tojson }}
+  {%- if agent.get('hostname') %}
+  hostname = {{ agent['hostname'] | tojson }}
+  {%- endif %}
+  omit_hostname = {{ 'false' if agent.get('hostname') else 'true' }}
+  logfile = {{ logfile | tojson }}
+  logfile_rotation_max_size = "10MB"
+  logfile_rotation_max_archives = 5
+  debug = {{ 'true' if agent.get('debug') else 'false' }}
+
+# Used by the SlapOS promise.
+[[outputs.health]]
+  service_address = "http://{{ health_ipv4 }}:{{ health_port }}"
+
+{% if opcua %}
+[[inputs.opcua]]
+  endpoint = {{ opcua['endpoint'] | tojson }}
+  security_policy = {{ opcua.get('security-policy', 'auto') | tojson }}
+  security_mode = {{ opcua.get('security-mode', 'auto') | tojson }}
+  auth_method = {{ opcua.get('auth-method', 'Anonymous') | tojson }}
+  {%- if opcua.get('username') %}
+  username = {{ opcua['username'] | tojson }}
+  password = {{ opcua.get('password', '') | tojson }}
+  {%- endif %}
+  {%- if opcua_certificate %}
+  certificate = {{ opcua_certificate | tojson }}
+  private_key = {{ opcua_private_key | tojson }}
+  {%- endif %}
+  {%- if opcua_remote_certificate %}
+  remote_certificate = {{ opcua_remote_certificate | tojson }}
+  {%- endif %}
+  timestamp = {{ opcua.get('timestamp', 'gather') | tojson }}
+  {%- for node in opcua.get('nodes', []) %}
+
+  [[inputs.opcua.nodes]]
+    name = {{ node['name'] | tojson }}
+    id = {{ node['id'] | tojson }}
+  {%- endfor %}
+{% endif %}
+
+{% if mqtt %}
+[[outputs.mqtt]]
+  servers = {{ mqtt['servers'] | tojson }}
+  topic = {{ mqtt.get('topic', default_topic) | tojson }}
+  qos = {{ mqtt.get('qos', 1) }}
+  retain = {{ 'true' if mqtt.get('retain') else 'false' }}
+  data_format = {{ mqtt.get('data-format', 'json') | tojson }}
+  {%- if mqtt.get('username') %}
+  username = {{ mqtt['username'] | tojson }}
+  password = {{ mqtt.get('password', '') | tojson }}
+  {%- endif %}
+  {%- if mqtt_tls_ca %}
+  tls_ca = {{ mqtt_tls_ca | tojson }}
+  {%- endif %}
+  {%- if mqtt_tls_cert %}
+  tls_cert = {{ mqtt_tls_cert | tojson }}
+  tls_key = {{ mqtt_tls_key | tojson }}
+  {%- endif %}
+  {%- if mqtt.get('insecure-skip-verify') %}
+  insecure_skip_verify = true
+  {%- endif %}
+{% endif %}
+
+{{ parameter_dict.get('extra-config', '') }}

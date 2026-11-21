@@ -1,0 +1,14 @@
+{
+  "name": "Telegraf",
+  "description": "Telegraf agent collecting OPC UA data and publishing it to MQTT",
+  "serialisation": "json-in-xml",
+  "software-type": {
+    "default": {
+      "title": "Default",
+      "description": "Telegraf with OPC UA input and MQTT output",
+      "request": "instance-input-schema.json",
+      "response": "instance-output-schema.json",
+      "index": 0
+    }
+  }
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Stand-in for nxdbom on a machine without slapos-sr-testing.
+
+It writes an empty CycloneDX document to the file given by --output.
+The SBOM of the software release is NOT generated.
+"""
+import json
+import sys
+
+args = sys.argv[1:]
+output = args[args.index('--output') + 1]
+with open(output, 'w') as f:
+  json.dump({'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'components': []}, f)

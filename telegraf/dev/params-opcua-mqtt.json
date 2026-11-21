@@ -1,0 +1,13 @@
+{
+  "agent": {"hostname": "test-vm", "interval": "2s", "flush-interval": "2s"},
+  "opcua": {
+    "endpoint": "opc.tcp://127.0.0.1:48400/test",
+    "security-policy": "None",
+    "security-mode": "None",
+    "nodes": [{"name": "Counter", "id": "ns=2;s=Counter"}]
+  },
+  "mqtt": {
+    "servers": ["mqtt://127.0.0.1:18830"],
+    "topic": "plc/counter"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Telegraf connection parameters",
+  "additionalProperties": false,
+  "properties": {
+    "health-url": {
+      "title": "Health URL",
+      "description": "HTTP endpoint that answers 200 when Telegraf runs.",
+      "type": "string"
+    },
+    "logfile": {
+      "title": "Log file",
+      "type": "string"
+    },
+    "opcua-client-certificate": {
+      "title": "OPC UA client certificate path",
+      "description": "Path of the client certificate that the OPC UA server must trust. Telegraf creates the file at its first connection when no certificate is given.",
+      "type": "string"
+    }
+  }
+}
